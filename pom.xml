@@ -20,6 +20,7 @@
     <modules>
         <module>dsf-core</module>
         <module>dsf-client</module>
+        <module>dsf-example</module>
     </modules>
 
     <properties>
