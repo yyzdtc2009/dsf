@@ -31,6 +31,8 @@ object SubmitCommand extends DSFCommand with Logging{
         System.exit(1)
     }
 
+    System.setProperty("Test","I am a test")
+
     val mainMethod = mainClass.getMethod("main",new Array[String](0).getClass)
     val testChildArgs:Array[String] = Array[String]("hello","class")
     try {

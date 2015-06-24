@@ -17,5 +17,7 @@ object JobSubmit {
     println("This is a DSF application.")
     print("Arguments:")
     args.foreach(println)
+
+    println(System.getProperty("Test"))
   }
 }
