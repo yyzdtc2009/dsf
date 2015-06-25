@@ -1,4 +1,6 @@
 <dsf>
-    <port>8111</port>
+    <node>
+        <port>9001</port>
+    </node>
     <zookeeper>192.168.0.103:2181</zookeeper>
 </dsf>
