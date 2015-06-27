@@ -1,16 +1,14 @@
 package com.joe.dsf.deploy.node
 
-import akka.actor.{ActorSelection, Actor}
+import akka.actor.{Props, ActorSystem, ActorSelection, Actor}
 import com.joe.dsf.deploy.DeployMessages.{RegisteredFollowerFailed, RegisteredFollowerSuccess, RegisterFollower, NotifyGetLeader}
-import com.joe.dsf.utils.NetUtils
+import com.joe.dsf.utils.{AkkaUtils, NetUtils}
 import com.joe.dsf.{DSFException, DSFConf, Logging}
 import org.apache.curator.framework.recipes.leader.{LeaderSelector, LeaderSelectorListenerAdapter}
-import org.apache.curator.framework.state.ConnectionState
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
 import org.apache.curator.retry.ExponentialBackoffRetry
 
 import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
 
 /**
  * DSFNode 启动入口
@@ -24,7 +22,6 @@ private[dsf] class DSFNode(client:CuratorFramework,nodeId:String,nodes:Array[Str
   val followerMap = new mutable.HashMap[String,ActorSelection]()
 
   override def preStart(): Unit = {
-    client.start()
     val leaderSelector = new LeaderSelector(client,"/dsf/node/leader",new LeaderSelectorListenerAdapter {
       override def takeLeadership(client: CuratorFramework): Unit = {
         /**
@@ -92,31 +89,11 @@ object DSFNode {
   private val actorName = "Node"
   def main(args: Array[String]) {
     val dsfConf = new DSFConf("conf/dsf-env.xml")
+    val host = NetUtils.getLocalIpAddress
     val port = 9003 /*为了方便开发阶段测试，这里直接写死，正式版在xml中配置*/
-    val retryPolicy = new ExponentialBackoffRetry(1000,3)
-    val client = CuratorFrameworkFactory.builder()
-      .connectString(dsfConf.zookeeperAddress)
-      .sessionTimeoutMs(2000)
-      .connectionTimeoutMs(10000)
-      .retryPolicy(retryPolicy)
-      .namespace("dsf").build()
-    client.start()
-
-    val leaderSelector = new LeaderSelector(client,"/dsf/node/leader",new LeaderSelectorListenerAdapter {
-      override def takeLeadership(p1: CuratorFramework): Unit = {
-        println("I'm on !")
-        Thread.sleep(300000)
-        println("I'm off !")
-      }
-    })
-    leaderSelector.setId(NetUtils.getLocalIpAddress + ":" + port)
-    println(leaderSelector.getLeader)
-    leaderSelector.autoRequeue()
-    leaderSelector.start()
-    while(true){
-      println("loop")
-      Thread.sleep(3000)
-    }
+    val nodeId = host + ":" + port
+    val client = createAndStartCuratorClient(dsfConf)
+    val actorSystem = startSystemAndActor(host,port,client,nodeId,dsfConf.getNodeList,dsfConf)
   }
 
   def toAkkaUrl(dsfId: String): String = {
@@ -126,5 +103,30 @@ object DSFNode {
       case _ =>
         throw new DSFException("Invalid node id: " + dsfId)
     }
+  }
+
+  def createAndStartCuratorClient(dsfConf:DSFConf):CuratorFramework = {
+    //TODO 真实运行时配置应从配置文件中读取，或选用一个默认值
+    val retryPolicy = new ExponentialBackoffRetry(1000,3)
+    val client = CuratorFrameworkFactory.builder()
+      .connectString(dsfConf.zookeeperAddress)
+      .sessionTimeoutMs(2000)
+      .connectionTimeoutMs(10000)
+      .retryPolicy(retryPolicy)
+      .namespace("dsf").build()
+    client.start()
+    client
+  }
+
+  def startSystemAndActor(host:String,
+                          port:Int,
+                          curatorClient:CuratorFramework,
+                          nodeId:String,
+                          nodes:Array[String],
+                          dsfConf:DSFConf):ActorSystem = {
+    val actorName = "Worker"
+    val (actorSystem, boundPort) = AkkaUtils.createActorSystem(systemName, host, port,dsfConf)
+    actorSystem.actorOf(Props(classOf[DSFNode], curatorClient,nodeId,nodes), name = actorName)
+    actorSystem
   }
 }
