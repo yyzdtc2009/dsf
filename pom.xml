@@ -21,6 +21,7 @@
         <module>dsf-core</module>
         <module>dsf-client</module>
         <module>dsf-example</module>
+        <module>dsf-test-tools</module>
     </modules>
 
     <properties>

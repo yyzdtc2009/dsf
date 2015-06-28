@@ -5,11 +5,14 @@ import com.joe.dsf.deploy.node.DSFNode
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.xml._
+import com.joe.dsf.utils.CommonUtils
+import java.io.File
+
 /**
  * DSF的通用配置对象，与conf下得dsf-env.xml相关联
  * Created by Joe on 15-6-24.
  */
-private[dsf] class DSFConf(path:String) {
+private[dsf] class DSFConf(path:String,loadDefault:Boolean = true) {
 
   val settings = new mutable.HashMap[String, String]()
   private val nodeList = new ArrayBuffer[String]()
@@ -18,8 +21,19 @@ private[dsf] class DSFConf(path:String) {
   load()
 
   def load(): Unit = {
+    if(loadDefault){
+      val defaultPropertiesURL = CommonUtils.getDSFClassLoader.getResource("com/joe/dsf/dsf-default.properties")
+      for(line <- Source.fromFile(new File(defaultPropertiesURL))){
+        line match {
+          case property:String =>
+            val propertyKV = property.split("=")
+            set(propertyKV(0),propertyKV(1))
+        }
+      }
+    }
     val dsfXml = XML.loadFile(path)
     zookeeperAddress = (dsfXml \ "zookeeper").text.trim
+    loadNodeList(dsfXml)
   }
 
   def loadNodeList(dsfXml:NodeSeq) = {

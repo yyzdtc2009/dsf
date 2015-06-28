@@ -64,6 +64,11 @@ private[dsf] class DSFNode(client:CuratorFramework,nodeId:String,nodes:Array[Str
       logError("Register failed to leader:%s,reason:%s".format(leaderId,reason) )
   }
 
+
+  override def postStop(): Unit = {
+
+  }
+
   /**
    * 向Leader注册自己
    */
@@ -83,17 +88,26 @@ private[dsf] class DSFNode(client:CuratorFramework,nodeId:String,nodes:Array[Str
   }
 }
 
-object DSFNode {
+private[dsf] object DSFNode extends Logging{
   val dsfIdRegex = "([^:]+):([0-9]+)".r
   val systemName = "dsfNode"
   private val actorName = "Node"
   def main(args: Array[String]) {
-    val dsfConf = new DSFConf("conf/dsf-env.xml")
+    logInfo("DSFNode start.")
+    val arguments = new DSFNodeArguments(args)
+    val dsfConf = new DSFConf(arguments.envConfPath)
+
+    arguments.inputProperties.foreach(property => {
+      dsfConf.set(property._1,property._2)
+    })
+
     val host = NetUtils.getLocalIpAddress
-    val port = 9003 /*为了方便开发阶段测试，这里直接写死，正式版在xml中配置*/
+    val port = dsfConf.getInt("dsf.node.port",9000)
     val nodeId = host + ":" + port
+    logInfo("DSFNode Id:" + nodeId)
     val client = createAndStartCuratorClient(dsfConf)
     val actorSystem = startSystemAndActor(host,port,client,nodeId,dsfConf.getNodeList,dsfConf)
+    actorSystem.awaitTermination()
   }
 
   def toAkkaUrl(dsfId: String): String = {
