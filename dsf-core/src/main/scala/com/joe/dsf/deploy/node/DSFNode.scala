@@ -94,9 +94,12 @@ private[dsf] object DSFNode extends Logging{
   private val actorName = "Node"
   def main(args: Array[String]) {
     logInfo("DSFNode start.")
-    val arguments = new DSFNodeArguments(args)
-    val dsfConf = new DSFConf(arguments.envConfPath)
+    val arguments = new DSFNodeArguments(args)        //解析命令行输入参数
+    val dsfConf = new DSFConf(arguments.envConfPath)  //读取配置文件
 
+    /**
+     * 如果命令行参数中用“-P”指定参数，则用该参数覆盖默认值
+     */
     arguments.inputProperties.foreach(property => {
       dsfConf.set(property._1,property._2)
     })
