@@ -12,4 +12,10 @@
     <artifactId>dsf-test-tools</artifactId>
     <description>DSF测试工具</description>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+        </dependency>
+    </dependencies>
 </project>
