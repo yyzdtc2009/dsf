@@ -17,5 +17,10 @@
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.joe.dsf</groupId>
+            <artifactId>dsf-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 </project>

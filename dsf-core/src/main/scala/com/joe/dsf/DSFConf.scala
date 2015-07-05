@@ -7,6 +7,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.xml._
 import com.joe.dsf.utils.CommonUtils
 import java.io.File
+import scala.io.Source
 
 /**
  * DSF的通用配置对象，与conf下得dsf-env.xml相关联
@@ -23,11 +24,11 @@ private[dsf] class DSFConf(path:String,loadDefault:Boolean = true) {
   def load(): Unit = {
     if(loadDefault){
       val defaultPropertiesURL = CommonUtils.getDSFClassLoader.getResource("com/joe/dsf/dsf-default.properties")
-      for(line <- Source.fromFile(new File(defaultPropertiesURL))){
-        line match {
-          case property:String =>
-            val propertyKV = property.split("=")
-            set(propertyKV(0),propertyKV(1))
+      for(line <- Source.fromFile(new File(defaultPropertiesURL.toURI)).getLines()) {
+        val property = line.trim
+        if (property.length > 0 && property.indexOf("=") > 0) {
+          val propertyKV = property.split("=")
+          set(propertyKV(0), propertyKV(1))
         }
       }
     }
@@ -38,7 +39,7 @@ private[dsf] class DSFConf(path:String,loadDefault:Boolean = true) {
 
   def loadNodeList(dsfXml:NodeSeq) = {
     val clusterConfPath = (dsfXml \ "cluster-conf-path").text.trim
-    for(line <- Source.fromFile(clusterConfPath)){
+    for(line <- Source.fromFile(clusterConfPath).getLines()){
       line match {
         case DSFNode.dsfIdRegex(host,port) => nodeList += line
       }

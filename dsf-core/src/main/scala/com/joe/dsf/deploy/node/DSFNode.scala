@@ -22,11 +22,13 @@ private[dsf] class DSFNode(client:CuratorFramework,nodeId:String,nodes:Array[Str
   val followerMap = new mutable.HashMap[String,ActorSelection]()
 
   override def preStart(): Unit = {
-    val leaderSelector = new LeaderSelector(client,"/dsf/node/leader",new LeaderSelectorListenerAdapter {
+    val leaderSelector = new LeaderSelector(client,"/node/leader",new LeaderSelectorListenerAdapter {
+      logInfo("Actor preStart")
       override def takeLeadership(client: CuratorFramework): Unit = {
         /**
          * 添加当选leader后的逻辑
          */
+        logInfo("I'm the leader")
         isLeader = true
         leaderId = nodeId
         broadcastGetLeader()
@@ -35,7 +37,6 @@ private[dsf] class DSFNode(client:CuratorFramework,nodeId:String,nodes:Array[Str
         }
       }
     })
-
     leaderSelector.setId(nodeId)
 
     if(leaderSelector.hasLeadership)/*如果已有leader,直接配置leader*/{
@@ -48,6 +49,7 @@ private[dsf] class DSFNode(client:CuratorFramework,nodeId:String,nodes:Array[Str
   override def receive: Receive = {
     case NotifyGetLeader(id) =>
       leaderId = id
+      logInfo("Get leader:" + id)
       registerWithLeader()
 
     case RegisterFollower(id) =>
@@ -81,6 +83,7 @@ private[dsf] class DSFNode(client:CuratorFramework,nodeId:String,nodes:Array[Str
    * 向集群所有其他节点广播自己当选为leader
    */
   def broadcastGetLeader():Unit = {
+    logInfo("I am the leader,my id:" + this.nodeId)
     nodes.foreach(id => {
       val actor = context.actorSelection(DSFNode.toAkkaUrl(id))
       actor ! NotifyGetLeader(this.nodeId)
@@ -125,9 +128,10 @@ private[dsf] object DSFNode extends Logging{
   def createAndStartCuratorClient(dsfConf:DSFConf):CuratorFramework = {
     //TODO 真实运行时配置应从配置文件中读取，或选用一个默认值
     val retryPolicy = new ExponentialBackoffRetry(1000,3)
+    println(dsfConf.zookeeperAddress)
     val client = CuratorFrameworkFactory.builder()
       .connectString(dsfConf.zookeeperAddress)
-      .sessionTimeoutMs(2000)
+      .sessionTimeoutMs(10000)
       .connectionTimeoutMs(10000)
       .retryPolicy(retryPolicy)
       .namespace("dsf").build()

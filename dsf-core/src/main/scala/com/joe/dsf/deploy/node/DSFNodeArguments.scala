@@ -11,6 +11,9 @@ import scala.collection.mutable
 private[node] class DSFNodeArguments(args:Array[String]) {
   var envConfPath:String = "conf/dsf-env.xml"
   val inputProperties = new mutable.HashMap[String,String]()
+
+  parse(args.toList)
+
   def parse(args:List[String]):Unit = args match {
     case ("--env-conf-path")::FileParam(value)::tail =>
       this.envConfPath = value
@@ -38,7 +41,7 @@ private[node] class DSFNodeArguments(args:Array[String]) {
 }
 
 private[dsf] object FileParam extends Logging{
-  def unapply(s: String): Option[Int] = {
+  def unapply(s: String): Option[String] = {
     val file = new File(s)
     if(file.exists() && file.isFile){
       Some(s)
@@ -50,7 +53,7 @@ private[dsf] object FileParam extends Logging{
 }
 
 private[dsf] object PropertyParam extends Logging{
-  def unapply(s: String): Option[Int] = {
+  def unapply(s: String): Option[String] = {
     val prop = s.split("=")
     if(prop.length == 2){
       logInfo("Set a property:key=%s,value=%s".format(prop(0),prop(1)))
