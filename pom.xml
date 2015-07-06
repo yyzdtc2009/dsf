@@ -31,7 +31,7 @@
         <scala.macros.version>2.0.1</scala.macros.version>
         <akka.group>org.spark-project.akka</akka.group>
         <akka.version>2.2.3-shaded-protobuf</akka.version>
-        <curator.version>2.8.0</curator.version>
+        <curator.version>2.7.1</curator.version>
         <slf4j.version>1.7.5</slf4j.version>
         <log4j.version>1.2.17</log4j.version>
 

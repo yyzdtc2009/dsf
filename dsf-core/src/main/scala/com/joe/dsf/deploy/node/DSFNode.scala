@@ -14,12 +14,14 @@ import scala.collection.mutable
  * DSFNode 启动入口
  * Created by Joe on 15-6-24.
  */
-private[dsf] class DSFNode(client:CuratorFramework,nodeId:String,nodes:Array[String/* address:port */]) extends Actor with Logging {
+private[dsf] class DSFNode(dsfConf:DSFConf,nodeId:String,nodes:Array[String/* address:port */]) extends Actor with Logging {
+
 
   var isOccupyLeader = true
   var leaderId:String = null
   var isLeader = false
   val followerMap = new mutable.HashMap[String,ActorSelection]()
+  val client = DSFNode.createAndStartCuratorClient(dsfConf)
 
   override def preStart(): Unit = {
     val leaderSelector = new LeaderSelector(client,"/node/leader",new LeaderSelectorListenerAdapter {
@@ -38,6 +40,8 @@ private[dsf] class DSFNode(client:CuratorFramework,nodeId:String,nodes:Array[Str
       }
     })
     leaderSelector.setId(nodeId)
+    leaderSelector.autoRequeue()
+    leaderSelector.start()
 
     if(leaderSelector.hasLeadership)/*如果已有leader,直接配置leader*/{
       leaderId = leaderSelector.getLeader.getId
@@ -111,8 +115,8 @@ private[dsf] object DSFNode extends Logging{
     val port = dsfConf.getInt("dsf.node.port",9000)
     val nodeId = host + ":" + port
     logInfo("DSFNode Id:" + nodeId)
-    val client = createAndStartCuratorClient(dsfConf)
-    val actorSystem = startSystemAndActor(host,port,client,nodeId,dsfConf.getNodeList,dsfConf)
+//    val client = createAndStartCuratorClient(dsfConf)
+    val actorSystem = startSystemAndActor(host,port,nodeId,dsfConf.getNodeList,dsfConf)
     actorSystem.awaitTermination()
   }
 
@@ -141,13 +145,11 @@ private[dsf] object DSFNode extends Logging{
 
   def startSystemAndActor(host:String,
                           port:Int,
-                          curatorClient:CuratorFramework,
                           nodeId:String,
                           nodes:Array[String],
                           dsfConf:DSFConf):ActorSystem = {
-    val actorName = "Worker"
     val (actorSystem, boundPort) = AkkaUtils.createActorSystem(systemName, host, port,dsfConf)
-    actorSystem.actorOf(Props(classOf[DSFNode], curatorClient,nodeId,nodes), name = actorName)
+    actorSystem.actorOf(Props(classOf[DSFNode], dsfConf,nodeId,nodes), name = actorName)
     actorSystem
   }
 }
