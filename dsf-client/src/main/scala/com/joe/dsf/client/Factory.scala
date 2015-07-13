@@ -13,4 +13,8 @@ class Factory(nodeAddress:String) {
   def addPipeLine(newPipeLine:PipeLine): Unit ={
     pipeLines += newPipeLine
   }
+
+  def submit():Boolean = {
+    true
+  }
 }
